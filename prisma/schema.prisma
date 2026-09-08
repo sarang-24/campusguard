@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Student {
+  student_id        String              @id
+  name              String
+  email             String              @unique
+  created_at        DateTime            @default(now())
+  attendance_events AttendanceEvent[]
+  summaries         AttendanceSummary[]
+
+  @@map("students")
+}
+
+model CourseSession {
+  session_id        String            @id
+  course_code       String
+  scheduled_time    DateTime
+  created_at        DateTime          @default(now())
+  attendance_events AttendanceEvent[]
+
+  @@map("course_sessions")
+}
+
+model AttendanceEvent {
+  event_id   String        @id @default(uuid())
+  student_id String
+  session_id String
+  timestamp  DateTime      @default(now())
+  source     String        // RFID, QR, BIOMETRIC, APP
+  status     String        // PRESENT, LATE, ABSENT, FLAGGED
+
+  student    Student       @relation(fields: [student_id], references: [student_id], onDelete: Cascade)
+  session    CourseSession @relation(fields: [session_id], references: [session_id], onDelete: Cascade)
+
+  @@unique([student_id, session_id])
+  @@map("attendance_events")
+}
+
+model AttendanceSummary {
+  id                String   @id @default(uuid())
+  student_id        String
+  course_code       String
+  total_sessions    Int      @default(0)
+  attended_sessions Int      @default(0)
+  percentage        Float    @default(0.0)
+  updated_at        DateTime @updatedAt
+
+  student           Student  @relation(fields: [student_id], references: [student_id], onDelete: Cascade)
+
+  @@unique([student_id, course_code])
+  @@map("attendance_summaries")
+}
